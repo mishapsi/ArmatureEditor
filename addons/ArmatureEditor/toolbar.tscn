@@ -1,0 +1,75 @@
+[gd_scene format=3 uid="uid://caejk0juh8rr5"]
+
+[ext_resource type="Script" uid="uid://b7r554npkfyy7" path="res://addons/ArmatureEditor/toolbar.gd" id="1_hue8f"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_x5jm5"]
+content_margin_left = 0.0
+content_margin_top = 0.0
+content_margin_right = 0.0
+content_margin_bottom = 0.0
+bg_color = Color(0.18346739, 0.15043208, 0.3109881, 0.6)
+corner_radius_top_left = 3
+corner_radius_top_right = 3
+corner_radius_bottom_right = 3
+corner_radius_bottom_left = 3
+corner_detail = 5
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_4w8fi"]
+content_margin_left = 4.0
+content_margin_right = 4.0
+content_margin_bottom = 0.0
+bg_color = Color(0.23364094, 0.5341346, 0.29745623, 0.6)
+corner_radius_top_left = 3
+corner_radius_top_right = 3
+corner_radius_bottom_right = 3
+corner_radius_bottom_left = 3
+corner_detail = 5
+
+[node name="Control" type="PanelContainer" unique_id=1364749455]
+offset_right = 69.0
+offset_bottom = 31.0
+theme_override_styles/panel = SubResource("StyleBoxFlat_x5jm5")
+script = ExtResource("1_hue8f")
+
+[node name="HBoxContainer" type="HBoxContainer" parent="." unique_id=704726991]
+layout_mode = 2
+
+[node name="RootBone" type="Button" parent="HBoxContainer" unique_id=90394600]
+unique_name_in_owner = true
+visible = false
+self_modulate = Color(0.71991134, 1, 0.6769316, 1)
+layout_mode = 2
+text = "Create Root Bone"
+
+[node name="PanelContainer" type="PanelContainer" parent="HBoxContainer" unique_id=1180884728]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_4w8fi")
+
+[node name="Label" type="Label" parent="HBoxContainer/PanelContainer" unique_id=913585537]
+layout_mode = 2
+text = "Mode:"
+
+[node name="ModeSelector" type="OptionButton" parent="HBoxContainer" unique_id=71662250]
+unique_name_in_owner = true
+layout_mode = 2
+selected = 0
+item_count = 2
+popup/item_0/text = "Pose"
+popup/item_0/id = 0
+popup/item_1/text = "Edit"
+popup/item_1/id = 1
+
+[node name="Snap" type="CheckButton" parent="HBoxContainer" unique_id=214892197]
+unique_name_in_owner = true
+layout_mode = 2
+button_pressed = true
+text = "Snap"
+
+[node name="SnapAmount" type="SpinBox" parent="HBoxContainer" unique_id=733265569]
+unique_name_in_owner = true
+layout_mode = 2
+max_value = 1.0
+step = 0.01
+value = 0.1
+
+[connection signal="item_selected" from="HBoxContainer/ModeSelector" to="." method="_on_option_button_item_selected"]
