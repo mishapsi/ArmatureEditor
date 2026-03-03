@@ -118,8 +118,8 @@ Chains are authored directly into `SpringBoneSimulator3D`.
 
 ### Auto Weighting
 
-1. Select mesh instances under the skeleton.
-2. Open Auto Weight dialog.
+1. Select mesh instances and skeleton.
+2. Open Auto Weight dialog with Right Click.
 3. Configure:
    - Radius multiplier
    - Falloff power
