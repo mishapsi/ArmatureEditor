@@ -46,7 +46,6 @@ func get_context_bone_from_selection() -> int:
 	var bones := _get_selected_bone_indices()
 	if bones.is_empty():
 		return -1
-
 	return bones[0]
 
 

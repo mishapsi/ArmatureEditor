@@ -138,11 +138,11 @@ func commit(action_name: String, pre: Array, post: Array, rebuild_skins: bool = 
 	ur.create_action(action_name)
 
 	ur.add_do_method(self, "_restore_by_index", post_index)
-	if rebuild_skins:
-		ur.add_do_method(self, "_rebuild_skins")
+	#if rebuild_skins:
+		#ur.add_do_method(self, "_rebuild_skins")
 	ur.add_undo_method(self, "_restore_by_index", pre_index)
-	if rebuild_skins:
-		ur.add_undo_method(self, "_rebuild_skins")
+	#if rebuild_skins:
+		#ur.add_undo_method(self, "_rebuild_skins")
 	ur.commit_action()
 
 func _store_snapshot(snapshot: Array, action_name: String) -> int:
