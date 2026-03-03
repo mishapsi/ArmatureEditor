@@ -373,6 +373,8 @@ func _commit_subgizmos(gizmo, ids, restores, cancel):
 func _make_material(color: Color) -> StandardMaterial3D:
 	var m := StandardMaterial3D.new()
 	m.albedo_color = color
+	m.albedo_color.a = .75
+	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	m.shading_mode = BaseMaterial3D.SHADING_MODE_PER_PIXEL
 	m.depth_draw_mode = BaseMaterial3D.DEPTH_DRAW_DISABLED
 	m.no_depth_test = true
