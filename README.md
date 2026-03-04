@@ -43,6 +43,7 @@ Armature Editor is a Godot 4 editor addon for directly creating and editing `Ske
 - **Pose Mode** modifies bone pose transforms.
 
 Switch modes using the toolbar.
+Operations are available in  right click menu predominantly in edit mode and when a bone is selected.
 
 ---
 
