@@ -171,7 +171,6 @@ func finish_extrude() -> Dictionary:
 	_extrude_parent = -1
 	return result
 
-
 func _create_extrude_bone(parent_bone: int, rest: Transform3D) -> int:
 	var skeleton := context.skeleton
 	var new_index := skeleton.get_bone_count()

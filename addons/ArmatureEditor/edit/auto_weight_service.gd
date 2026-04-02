@@ -14,7 +14,15 @@ var recalculate_normals:bool = false
 
 ## Opens the modal weighting dialog and waits for confirmation.
 func open_dialog() -> void:
-	var dialog := _build_dialog()
+	var selection := EditorInterface.get_selection()
+	var nodes := selection.get_selected_nodes()
+	var skeleton := _get_active_skeleton(nodes)
+
+	if skeleton == null:
+		push_warning("Select a Skeleton3D.")
+		return
+
+	var dialog := _build_dialog(skeleton)
 	EditorInterface.get_base_control().add_child(dialog)
 	dialog.popup_centered()
 	await dialog.confirmed
@@ -22,10 +30,10 @@ func open_dialog() -> void:
 
 	_execute()
 
-func _build_dialog() -> AcceptDialog:
+func _build_dialog(skeleton: Skeleton3D) -> AcceptDialog:
 	var dialog := AcceptDialog.new()
 	dialog.title = "Auto Weight Meshes"
-	dialog.size = Vector2(400, 300)
+	dialog.size = Vector2(400, 500)
 
 	var vb := VBoxContainer.new()
 	dialog.add_child(vb)
@@ -55,11 +63,42 @@ func _build_dialog() -> AcceptDialog:
 	recalc.button_pressed = recalculate_normals
 	vb.add_child(_labeled("Recalculate Normals", recalc))
 
+	# ---------------- BONES LIST ----------------
+	var scroll := ScrollContainer.new()
+	scroll.custom_minimum_size = Vector2(0, 200)
+
+	var bone_list := VBoxContainer.new()
+	scroll.add_child(bone_list)
+
+	var bone_checkboxes := {}
+
+	for i in range(skeleton.get_bone_count()):
+		var name := skeleton.get_bone_name(i)
+
+		var cb := CheckBox.new()
+		cb.text = name
+		cb.button_pressed = false # unchecked by default → ignored
+
+		bone_list.add_child(cb)
+		bone_checkboxes[name] = cb
+
+	var label := Label.new()
+	label.text = "Ignored Bones (unchecked = ignored)"
+	vb.add_child(label)
+
+	vb.add_child(scroll)
+	# ---------------- CONFIRM ----------------
 	dialog.confirmed.connect(func():
 		bone_radius_multiplier = radius_spin.value
 		blend_falloff_power = falloff_spin.value
 		weight_smoothing = smooth_spin.value
 		recalculate_normals = recalc.button_pressed
+
+		ignored_bones.clear()
+
+		for name in bone_checkboxes:
+			if not bone_checkboxes[name].button_pressed:
+				ignored_bones.append(name)
 	)
 
 	return dialog
@@ -141,40 +180,40 @@ func _process_mesh_weighting(mesh_instance: MeshInstance3D, skeleton: Skeleton3D
 	apply_bone_weights(mesh_instance, skeleton)
 
 
+## Applies automatic bone weights to a mesh using unified multi-surface topology.
+func apply_bone_weights(mesh_instance: MeshInstance3D, skeleton: Skeleton3D) -> void:
+	var source_mesh := mesh_instance.mesh
+	if source_mesh == null or not (source_mesh is ArrayMesh):
+		return
 
-func apply_bone_weights(mesh_instance:MeshInstance3D, skeleton:Skeleton3D):
-	var _mesh := mesh_instance.mesh
 	var sk: Skeleton3D = skeleton
-	if !sk:
+	if sk == null:
 		return
 
-	if not (_mesh is ArrayMesh):
-		var source := _mesh
-		var converted := ArrayMesh.new()
+	# ---------------- MERGE SURFACES ----------------
+	var merged := _merge_surfaces(source_mesh)
+	var vertices: PackedVector3Array = merged.vertices
+	var indices: PackedInt32Array = merged.indices
+	var surface_ranges: Array = merged.ranges
 
-		for s in range(source.get_surface_count()):
-			var arrays := source.surface_get_arrays(s)
-			var material := source.surface_get_material(s)
+	var vertex_count := vertices.size()
 
-			converted.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
-			converted.surface_set_material(converted.get_surface_count() - 1, material)
+	# ---------------- ADJACENCY ----------------
+	var adjacency := build_vertex_adjacency(indices, vertex_count)
 
-		_mesh = converted
+	# ---------------- WORLD POS ----------------
+	var world_positions := PackedVector3Array()
+	world_positions.resize(vertex_count)
 
-	var surface_index := 0
+	for i in range(vertex_count):
+		world_positions[i] = mesh_instance.global_transform * vertices[i]
 
-	var mdt := MeshDataTool.new()
-	if mdt.create_from_surface(_mesh, surface_index) != OK:
-		push_error("Failed to load mesh data tool")
-		return
-
-	var vertex_count := mdt.get_vertex_count()
-
+	# ---------------- WELD MAP ----------------
 	var weld_map := {}
 	var weld_tolerance := 0.0001
 
 	for i in range(vertex_count):
-		var pos = mdt.get_vertex(i)
+		var pos = vertices[i]
 		var key = Vector3(
 			round(pos.x / weld_tolerance),
 			round(pos.y / weld_tolerance),
@@ -185,6 +224,7 @@ func apply_bone_weights(mesh_instance:MeshInstance3D, skeleton:Skeleton3D):
 			weld_map[key] = []
 		weld_map[key].append(i)
 
+	# ---------------- BONES ----------------
 	var bone_segments := []
 	var bone_count := sk.get_bone_count()
 
@@ -193,105 +233,33 @@ func apply_bone_weights(mesh_instance:MeshInstance3D, skeleton:Skeleton3D):
 		var idx = sk.find_bone(name)
 		if idx != -1:
 			ignored_set[idx] = true
-	#ignore leaf bones and root
-	for i in sk.get_bone_count():
-		var n = sk.get_bone_name(i)
-		var children = sk.get_bone_children(i)
-		#if children.is_empty():
-			#ignored_set[i] = true
-		if i == 0:
-			ignored_set[i] = true
-	for i in range(1, bone_count):
 
-		if ignored_set.has(i):
+	for i in range(bone_count):
+		if i == 0 or ignored_set.has(i):
 			continue
-		var bone_name = sk.get_bone_name(i)
+
 		var rest_a: Transform3D = sk.global_transform * sk.get_bone_global_rest(i)
 		var children = sk.get_bone_children(i)
 
 		var rest_b: Vector3
 
 		if children.size() > 0:
-			var child_index = children[0]
-
-			if not ignored_set.has(child_index):
-				var child_rest: Transform3D = sk.global_transform * sk.get_bone_global_rest(child_index)
+			var child = children[0]
+			if not ignored_set.has(child):
+				var child_rest: Transform3D = sk.global_transform * sk.get_bone_global_rest(child)
 				rest_b = child_rest.origin
 			else:
-				# Child ignored → fallback segment
-				var dir = rest_a.basis.y.normalized()
-				rest_b = rest_a.origin + dir * 0.05
+				rest_b = rest_a.origin + rest_a.basis.y.normalized() * 0.05
 		else:
-			var dir = rest_a.basis.y.normalized()
-			rest_b = rest_a.origin + dir * 0.05
+			rest_b = rest_a.origin + rest_a.basis.y.normalized() * 0.05
 
 		bone_segments.append({
-			"bname": bone_name,
 			"index": i,
 			"a": rest_a.origin,
 			"b": rest_b
 		})
-	var marrays := _mesh.surface_get_arrays(surface_index)
 
-	var mverts: PackedVector3Array = marrays[Mesh.ARRAY_VERTEX]
-	var midx: PackedInt32Array = []
-
-	if marrays[Mesh.ARRAY_INDEX] == null:
-		midx = PackedInt32Array()
-		midx.resize(mverts.size())
-		for i in range(mverts.size()):
-			midx[i] = i
-
-		marrays[Mesh.ARRAY_INDEX] = midx
-
-		var primitive = _mesh.surface_get_primitive_type(surface_index)
-		var material = _mesh.surface_get_material(surface_index)
-
-		_mesh.surface_remove(surface_index)
-		_mesh.add_surface_from_arrays(primitive, marrays)
-		_mesh.surface_set_material(_mesh.get_surface_count() - 1, material)
-	var indices: PackedInt32Array = _mesh.surface_get_arrays(surface_index)[Mesh.ARRAY_INDEX]
-	var adjacency := build_vertex_adjacency(indices, vertex_count)
-
-	var world_positions := PackedVector3Array()
-	world_positions.resize(vertex_count)
-
-	for v in range(vertex_count):
-		world_positions[v] = mesh_instance.global_transform * mdt.get_vertex(v)
-
-
-	var geodesic_maps := {}
-
-	for segment in bone_segments:
-
-		var bone_length = segment.a.distance_to(segment.b)
-		var seed_radius = bone_length * bone_radius_multiplier
-
-		var seeds := PackedInt32Array()
-
-		for v in range(vertex_count):
-			var d = get_capsule_distance(
-				world_positions[v],
-				segment.a,
-				segment.b,
-				seed_radius
-			)
-
-			if d < seed_radius*.5:
-				seeds.append(v)
-
-		if seeds.is_empty():
-			continue
-
-		var geo = _compute_geodesic_distances(
-			mdt,
-			adjacency,
-			seeds,
-			bone_length * 3
-		)
-
-		geodesic_maps[segment.index] = geo
-
+	# ---------------- WEIGHTS ----------------
 	var temp_weights := []
 	temp_weights.resize(vertex_count)
 
@@ -300,24 +268,9 @@ func apply_bone_weights(mesh_instance:MeshInstance3D, skeleton:Skeleton3D):
 		var bone_data := []
 
 		for segment in bone_segments:
-			#if not geodesic_maps.has(segment.index):
-				#continue
-#
-			#var geo_dist = geodesic_maps[segment.index][v]
 			var bone_length = segment.a.distance_to(segment.b)
-##
-			#var geo_limit = bone_length * 4.0
-#
-			#if geo_dist > geo_limit:
-				#continue
 			var radius = bone_length * bone_radius_multiplier
-			#var bone_dir = (segment.b - segment.a).normalized()
-			#var to_vertex = (world_positions[v] - segment.a).normalized()
-			#var directional = bone_dir.dot(to_vertex)
-#
-			#if directional < -0.0:
-				##radius *= .25
-				#continue
+
 			var dist = get_capsule_distance(
 				world_positions[v],
 				segment.a,
@@ -333,29 +286,7 @@ func apply_bone_weights(mesh_instance:MeshInstance3D, skeleton:Skeleton3D):
 			})
 
 		if bone_data.is_empty():
-			var closest := []
-			for segment in bone_segments:
-				var bone_length = segment.a.distance_to(segment.b)
-				var radius = bone_length * bone_radius_multiplier
-				var dist = get_capsule_distance(
-					world_positions[v],
-					segment.a,
-					segment.b,
-					radius
-				)
-				#var bone_dir = (segment.b - segment.a).normalized()
-				#var to_vertex = (world_positions[v] - segment.a).normalized()
-				#var directional = bone_dir.dot(to_vertex)
-#
-				#if directional < -0.0:
-					##radius *= .25
-					#continue
-				closest.append({
-					"index": segment.index,
-					"distance": dist
-				})
-			closest.sort_custom(func(a,b): return a.distance < b.distance)
-			bone_data = closest.slice(0,4)
+			continue
 
 		var current_indices := PackedInt32Array([0,0,0,0])
 		var current_weights := Vector4.ZERO
@@ -384,6 +315,7 @@ func apply_bone_weights(mesh_instance:MeshInstance3D, skeleton:Skeleton3D):
 			"weights": current_weights
 		}
 
+	# ---------------- WELD BLENDING ----------------
 	for group in weld_map.values():
 
 		var combined := {}
@@ -425,42 +357,106 @@ func apply_bone_weights(mesh_instance:MeshInstance3D, skeleton:Skeleton3D):
 				"weights": final_weights
 			}
 
-	var bone_array := PackedInt32Array()
-	var weight_array := PackedFloat32Array()
-
-	for v in range(vertex_count):
-		var data = temp_weights[v]
-		mdt.set_vertex_bones(v, data.indices)
-		mdt.set_vertex_weights(v, PackedFloat32Array([
-			data.weights.x,
-			data.weights.y,
-			data.weights.z,
-			data.weights.w
-		]))
-
-	if weight_smoothing > 0.0:
-		smooth_weights(mdt, 4, weight_smoothing)
-		enforce_position_groups(mdt)
-
+	# ---------------- REBUILD SURFACES ----------------
 	var new_mesh := ArrayMesh.new()
 
-	_mesh.surface_remove(surface_index)
-	mdt.commit_to_surface(_mesh)
-	mdt.clear()
+	var vertex_cursor := 0
 
-	for s in range(_mesh.get_surface_count()):
-		var arrays = _mesh.surface_get_arrays(s)
-		var primitive = _mesh.surface_get_primitive_type(s)
-		var material = _mesh.surface_get_material(s)
+	for s in range(source_mesh.get_surface_count()):
+
+		var arrays = source_mesh.surface_get_arrays(s)
+		var verts: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
+		var count := verts.size()
+
+		var bones := PackedInt32Array()
+		var weights := PackedFloat32Array()
+
+		bones.resize(count * 4)
+		weights.resize(count * 4)
+
+		for i in range(count):
+			var data = temp_weights[vertex_cursor + i]
+
+			for j in range(4):
+				bones[i * 4 + j] = data.indices[j]
+				weights[i * 4 + j] = data.weights[j]
+
+		arrays[Mesh.ARRAY_BONES] = bones
+		arrays[Mesh.ARRAY_WEIGHTS] = weights
+
+		var primitive = source_mesh.surface_get_primitive_type(s)
+		var material = source_mesh.surface_get_material(s)
 
 		new_mesh.add_surface_from_arrays(primitive, arrays)
 		new_mesh.surface_set_material(new_mesh.get_surface_count() - 1, material)
 
+		vertex_cursor += count
+
 	mesh_instance.mesh = new_mesh
+
 	if recalculate_normals:
 		recalc_welded_normals(mesh_instance)
+
 	mesh_instance.skeleton = mesh_instance.get_path_to(skeleton)
 	mesh_instance.skin = build_skin_from_skeleton_rest(sk)
+
+## Merges all surfaces into one unified vertex/index set.
+func _merge_surfaces(mesh: ArrayMesh) -> Dictionary:
+	var merged_vertices := PackedVector3Array()
+	var merged_indices := PackedInt32Array()
+	var ranges := []
+
+	var vertex_offset := 0
+
+	for s in range(mesh.get_surface_count()):
+
+		var arrays = mesh.surface_get_arrays(s)
+
+		if arrays.is_empty():
+			continue
+
+		var verts = arrays[Mesh.ARRAY_VERTEX]
+		if verts == null or verts.is_empty():
+			continue
+
+		var indices = arrays[Mesh.ARRAY_INDEX]
+
+		# Ensure indices exist
+		if indices == null or indices.is_empty():
+			indices = PackedInt32Array()
+			indices.resize(verts.size())
+			for i in range(verts.size()):
+				indices[i] = i
+
+		# Append vertices
+		for v in verts:
+			merged_vertices.append(v)
+
+		# Append indices with offset
+		for idx in indices:
+			merged_indices.append(idx + vertex_offset)
+
+		ranges.append({
+			"start": vertex_offset,
+			"count": verts.size()
+		})
+
+		vertex_offset += verts.size()
+
+	# -------- FAILSAFE --------
+	if merged_vertices.is_empty():
+		push_error("Merge surfaces failed: no vertices found")
+		return {
+			"vertices": PackedVector3Array(),
+			"indices": PackedInt32Array(),
+			"ranges": []
+		}
+
+	return {
+		"vertices": merged_vertices,
+		"indices": merged_indices,
+		"ranges": ranges
+	}
 
 func get_capsule_distance(p: Vector3, a: Vector3, b: Vector3, radius: float) -> float:
 	var ab = b - a
