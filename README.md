@@ -1,13 +1,6 @@
 # Armature Editor (Godot 4)
 
-Armature Editor is a Godot 4 editor addon for directly creating and editing `Skeleton3D` hierarchies inside the 3D viewport. It provides bone authoring, structural editing, spring chain setup, auto-weighting, and integrated undo/redo workflows, all designed to work natively within the Godot editor.
-
-This tool is intended for developers who want to:
-
-- Author skeletons without external DCC tools
-- Rapidly prototype rigs directly inside Godot
-- Integrate spring bone chains for secondary motion
-- Reweight meshes after structural changes
+Armature Editor is a Godot 4 editor addon for directly creating and editing `Skeleton3D` hierarchies inside the 3D viewport. It provides bone authoring, structural editing, spring chain setup, auto-weighting, all designed to work natively within the Godot editor.
 
 ---
 
@@ -33,8 +26,6 @@ This tool is intended for developers who want to:
 2. Open **Project > Project Settings > Plugins**
 3. Enable **Armature Editor**
 
-The toolbar will appear when a `Skeleton3D` is selected.
-
 ---
 
 ## Usage
@@ -52,15 +43,15 @@ The toolbar will appear when a `Skeleton3D` is selected.
 - **Pose Mode** modifies bone pose transforms.
 
 Switch modes using the toolbar.
+Operations are available in  right click menu predominantly in edit mode and when a bone is selected.
 
 ---
 
 ### Creating and Extruding Bones
 
-1. Select a bone.
-2. Activate the Extrude tool.
-3. Drag in the viewport to define length.
-4. Confirm the action.
+1. Drag in the viewport to define length.
+2. Confirm the action by click
+3. Set bone name
 
 Extrusion uses the major view plane for consistent directional behavior.
 
@@ -68,8 +59,6 @@ Extrusion uses the major view plane for consistent directional behavior.
 
 ### Subdividing Bones
 
-- Select a bone.
-- Use the Subdivide command.
 - The original bone is split into evenly distributed segments.
 - Tip bone positioning is preserved.
 
@@ -77,25 +66,8 @@ Extrusion uses the major view plane for consistent directional behavior.
 
 ### Deleting Bones
 
-- Select a bone.
-- Use Delete.
-- All children are recursively removed.
-- Skeleton is rebuilt safely with index remapping.
-
----
-
-### Renaming Bones
-
-- Right-click a bone.
-- Choose Rename.
-- The dialog shows the current name beneath the input field.
-
----
-
-### Multi-Bone Selection
-
-- Use viewport selection or frustum drag.
-- Chain building supports multi-selection.
+- All children of selected bone are recursively removed.
+- Skeleton is rebuilt safely with index remapping
 
 ---
 
@@ -110,7 +82,6 @@ To build a spring chain:
 Validation rules:
 - Start and end bones may overlap with other chains.
 - Intermediate bones may not belong to other chains.
-- A toaster warning appears if a conflict exists.
 
 Chains are authored directly into `SpringBoneSimulator3D`.
 
@@ -127,19 +98,6 @@ Chains are authored directly into `SpringBoneSimulator3D`.
 4. Confirm.
 
 Weights are computed in world space and respect mesh transforms.
-
----
-
-## Undo/Redo
-
-All structural changes use snapshot-based undo:
-
-- Extrude
-- Subdivide
-- Delete
-- Weighting
-
-Snapshots fully reconstruct the skeleton to avoid partial corruption.
 
 ---
 
