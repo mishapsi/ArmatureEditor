@@ -1,6 +1,3 @@
-# extrude_name_controller.gd
-# Handles the "Name Bone" dialog after an extrusion completes.
-
 @tool
 extends Node
 class_name ExtrudeNameController
@@ -8,18 +5,19 @@ class_name ExtrudeNameController
 signal confirmed(base_name: String, pending: Dictionary, pre_snapshot: Array)
 signal canceled(pending: Dictionary, pre_snapshot: Array)
 
-# =========================================================
-# Exports
-# =========================================================
 @export_category("Dialog")
 @export var dialog_title := "Name Bone"
 @export var default_placeholder := "Bone name"
 
-# =========================================================
-# Public
-# =========================================================
 var context: ArmatureSkeletonContext = null
-
+var _editor_interface: EditorInterface = null
+var _dialog: AcceptDialog = null
+var _edit: LineEdit = null
+var _warning_row: HBoxContainer = null
+var _warning_icon: Label = null
+var _warning_text: Label = null
+var _pending: Dictionary = {}
+var _pre_snapshot: Array = []
 
 ## Sets the context used by this controller.
 func set_context(p_context: ArmatureSkeletonContext) -> void:
@@ -68,22 +66,6 @@ func dispose() -> void:
 	_editor_interface = null
 	_pending.clear()
 	_pre_snapshot.clear()
-
-
-# =========================================================
-# Private
-# =========================================================
-
-var _editor_interface: EditorInterface = null
-var _dialog: AcceptDialog = null
-var _edit: LineEdit = null
-var _warning_row: HBoxContainer = null
-var _warning_icon: Label = null
-var _warning_text: Label = null
-
-var _pending: Dictionary = {}
-var _pre_snapshot: Array = []
-
 
 func _create_dialog_if_needed() -> void:
 	if _dialog != null:

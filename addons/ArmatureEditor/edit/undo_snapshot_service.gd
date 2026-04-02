@@ -2,7 +2,6 @@
 extends RefCounted
 class_name ArmatureUndoRedoService
 
-
 var context: ArmatureSkeletonContext = null
 var skeleton_gizmo:EditableSkeletonGizmo = null
 

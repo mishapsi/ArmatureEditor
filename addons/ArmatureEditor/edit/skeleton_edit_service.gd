@@ -2,14 +2,11 @@
 extends RefCounted
 class_name ArmatureEditService
 
-
 var context: ArmatureSkeletonContext = null
-
 
 ## Sets the context used by this service.
 func set_context(p_context: ArmatureSkeletonContext) -> void:
 	context = p_context
-
 
 ## Creates an initial root + tip bone if the skeleton has no bones.
 ## Preserves the original function name.

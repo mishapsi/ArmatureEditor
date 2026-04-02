@@ -2,16 +2,13 @@
 extends RefCounted
 class_name ArmatureSpringBoneChainService
 
-
 var context: ArmatureSkeletonContext = null
 var selection_service: ArmatureSelectionService = null
-
 
 ## Sets dependencies used by this service.
 func set_dependencies(p_context: ArmatureSkeletonContext, p_selection_service: ArmatureSelectionService) -> void:
 	context = p_context
 	selection_service = p_selection_service
-
 
 ## Builds a valid linear chain from the current selection and registers it.
 ## The chain is authored directly into SpringBoneSimulator3D (no Skeleton meta storage).
@@ -94,8 +91,6 @@ func _find_chain_conflict_bone(
 
 	return -1
 
-
-# Shows a warning toast for a conflicting bone.
 func _warn_chain_conflict(bone_index: int) -> void:
 	if context == null or context.skeleton == null:
 		return
@@ -110,8 +105,6 @@ func _warn_chain_conflict(bone_index: int) -> void:
 		EditorToaster.SEVERITY_WARNING
 	)
 
-
-# Reconstructs a simulator chain's bone list from end->root by walking parents.
 func _get_simulator_chain_bones(skeleton: Skeleton3D, root: int, end: int) -> Array[int]:
 	var out: Array[int] = []
 	if skeleton == null:

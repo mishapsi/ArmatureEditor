@@ -1,11 +1,24 @@
-# context_menu_controller.gd
-# Popup menu controller for bone context actions.
-
 @tool
 extends Node
 class_name ContextMenuController
 
 signal action_requested(action_id: int, bone_index: int)
+
+var _popup: PopupMenu = null
+var _context_bone := -1
+var _editor_interface: EditorInterface = null
+
+enum _MenuMode { BONE, MULTI_SELECTION }
+const ACTION_SUBDIVIDE := 0
+const ACTION_EXTRUDE := 1
+const ACTION_CREATE_SPRING_CHAIN := 2
+const ACTION_DELETE := 3
+const ACTION_RENAME := 4
+const ACTION_SCALE := 5
+const ACTION_COPY := 6
+const ACTION_PASTE_AS_CHILD := 7
+const ACTION_CREATE_SPRING_BONE_COLLISION := 8
+const ACTION_AUTO_WEIGHT := 9
 
 @export_category("Menu")
 @export var menu_title := "Bone Menu"
@@ -49,22 +62,6 @@ func dispose() -> void:
 	_context_bone = -1
 	_editor_interface = null
 
-var _popup: PopupMenu = null
-var _context_bone := -1
-var _editor_interface: EditorInterface = null
-
-enum _MenuMode { BONE, MULTI_SELECTION }
-
-const ACTION_SUBDIVIDE := 0
-const ACTION_EXTRUDE := 1
-const ACTION_CREATE_SPRING_CHAIN := 2
-const ACTION_DELETE := 3
-const ACTION_RENAME := 4
-const ACTION_SCALE := 5
-const ACTION_COPY := 6
-const ACTION_PASTE_AS_CHILD := 7
-const ACTION_CREATE_SPRING_BONE_COLLISION := 8
-const ACTION_AUTO_WEIGHT := 9
 
 
 func _create_menu_if_needed() -> void:

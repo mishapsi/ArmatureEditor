@@ -20,14 +20,10 @@ var _post_extrude_snapshot := []
 
 func _enter_tree():
 	_undo_redo = get_undo_redo()
-
-	# gizmo
 	skeleton_gizmo = SKELETON_GIZMO.new()
 	add_node_3d_gizmo_plugin(skeleton_gizmo)
 	skeleton_gizmo.recorded_bones_changed.connect(_on_recorded_bones_changed)
 	set_input_event_forwarding_always_enabled()
-
-	# toolbar
 	toolbar = TOOLBAR_SCENE.instantiate()
 	add_control_to_container(EditorPlugin.CONTAINER_SPATIAL_EDITOR_MENU, toolbar) 
 	toolbar.mode_changed.connect(_on_skeleton_mode_changed)
@@ -98,11 +94,6 @@ func _forward_3d_gui_input(camera: Camera3D, event: InputEvent) -> int:
 				_begin_extrude(event)
 				return 2
 
-
-
-	# -------------------------
-	# Modal update
-	# -------------------------
 	if _is_extruding and event is InputEventMouseMotion:
 		_update_extrude(event)
 		return 2
@@ -343,106 +334,6 @@ func _finish_extrude():
 	_extrude_parent = -1
 	skeleton.clear_bones_global_pose_override()
 
-
-
-#
-#
-#func _extrude_from_selected():
-	#if skeleton == null:
-		#return
-#
-	#var gizmos = skeleton.get_gizmos()
-	#if gizmos.is_empty():
-		#return
-#
-	#var gizmo = gizmos[0]
-	#var selected_ids = skeleton_gizmo.get_selected_ids(gizmo)
-#
-	#if selected_ids.is_empty():
-		#return
-#
-	#for id in selected_ids:
-#
-		#var bone = id / 2
-		#var part = id % 2
-#
-		## Only extrude from JOINT handle
-		#if part != 1:
-			#continue
-		#var is_leaf = skeleton.get_bone_children(bone).is_empty()
-		#var parent_bone = bone+1
-		#if is_leaf:
-			#parent_bone = bone
-		#var parent_global := skeleton.get_bone_global_rest(parent_bone)
-#
-		## -------------------------------------------------
-		## Compute parent tail (correctly)
-		## -------------------------------------------------
-#
-		#var parent_tail_world : Vector3
-		#var children := skeleton.get_bone_children(parent_bone)
-#
-		#if not children.is_empty():
-			#print(12)
-			#parent_tail_world = parent_global.origin + parent_global.basis.z * 0.5
-		#else:
-			## leaf bone — fake length
-			#print(1)
-			#parent_tail_world = parent_global.origin + parent_global.basis.z * 0.5
-#
-		## -------------------------------------------------
-		## Perpendicular direction
-		## -------------------------------------------------
-#
-		#var perpendicular := parent_global.basis.x.normalized()
-		#var new_length := 0.5
-#
-		#var new_head_world := parent_tail_world
-		#var new_tail_world := new_head_world + perpendicular * new_length
-#
-		## -------------------------------------------------
-		## CREATE EXTRUDED BONE
-		## -------------------------------------------------
-#
-		#var new_bone_index := skeleton.get_bone_count()
-#
-		#skeleton.add_bone("Bone_%d" % new_bone_index)
-		#skeleton.set_bone_parent(new_bone_index, parent_bone)
-#
-		#var parent_basis := parent_global.basis
-		#var parent_origin := parent_global.origin
-#
-		#var rest := Transform3D()
-#
-		## head local
-		#rest.origin = Vector3.ZERO
-#
-		## orientation
-		#var dir_world := (new_tail_world - new_head_world).normalized()
-		#var basis_world := Basis().looking_at(dir_world, Vector3.UP)
-		#rest.basis = parent_basis.inverse() * basis_world
-#
-		#skeleton.set_bone_rest(new_bone_index, rest)
-		### -------------------------------------------------
-		### CREATE TIP BONE (so length exists)
-		### -------------------------------------------------
-		#if !is_leaf:
-			#
-			#var tip_index := skeleton.get_bone_count()
-#
-			#skeleton.add_bone("Bone_%d_tip" % tip_index)
-			#skeleton.set_bone_parent(tip_index, new_bone_index)
-#
-			#var tip_rest := Transform3D()
-			#tip_rest.origin = Vector3(0, 0, new_length)
-			#tip_rest.basis = Basis.IDENTITY
-#
-			#skeleton.set_bone_rest(tip_index, tip_rest)
-#
-	#skeleton.clear_bones_global_pose_override()
-	#skeleton_gizmo._redraw(gizmo)
-	#skeleton.update_gizmos()
-
 func _snapshot_into(target_array: Array):
 
 	target_array.clear()
@@ -474,7 +365,6 @@ func _rebuild_skins_for_skeleton():
 	if skeleton == null:
 		return
 
-	# Find all MeshInstance3D children using this skeleton
 	var meshes: Array[MeshInstance3D] = []
 	_collect_meshes(skeleton, meshes)
 
@@ -488,14 +378,11 @@ func _rebuild_skins_for_skeleton():
 		var bone_count := skeleton.get_bone_count()
 		var old_bind_count := old_skin.get_bind_count()
 
-		# Copy existing binds
 		for i in range(old_bind_count):
 			var bone_name := old_skin.get_bind_name(i)
 			var bind_pose := old_skin.get_bind_pose(i)
 			new_skin.add_named_bind(bone_name,bind_pose)
-			#new_skin.add_bind(bone_name, bind_pose)
 
-		# Add binds for any new bones
 		for i in range(old_bind_count, bone_count):
 			var bone_name := skeleton.get_bone_name(i)
 			new_skin.add_named_bind(bone_name, Transform3D.IDENTITY)

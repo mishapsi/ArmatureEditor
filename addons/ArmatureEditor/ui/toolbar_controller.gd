@@ -1,21 +1,12 @@
-# toolbar_controller.gd
-# Wraps the toolbar scene instance and exposes stable API for mode queries and signals.
-
 @tool
 extends Node
 class_name ToolbarController
 
 signal mode_changed(mode: int)
 
-# =========================================================
-# Exports
-# =========================================================
 @export_category("Toolbar")
 @export var toolbar_scene: PackedScene
 
-# =========================================================
-# Public
-# =========================================================
 var toolbar: Control = null
 
 
@@ -73,11 +64,6 @@ func get_mode() -> int:
 	if not toolbar.has_method("get"):
 		return -1
 	return int(toolbar.get("mode"))
-
-
-# =========================================================
-# Private
-# =========================================================
 
 func _on_toolbar_mode_changed(mode: int) -> void:
 	mode_changed.emit(mode)

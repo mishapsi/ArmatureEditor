@@ -63,7 +63,6 @@ func _build_dialog(skeleton: Skeleton3D) -> AcceptDialog:
 	recalc.button_pressed = recalculate_normals
 	vb.add_child(_labeled("Recalculate Normals", recalc))
 
-	# ---------------- BONES LIST ----------------
 	var scroll := ScrollContainer.new()
 	scroll.custom_minimum_size = Vector2(0, 200)
 
@@ -77,7 +76,7 @@ func _build_dialog(skeleton: Skeleton3D) -> AcceptDialog:
 
 		var cb := CheckBox.new()
 		cb.text = name
-		cb.button_pressed = false # unchecked by default → ignored
+		cb.button_pressed = false
 
 		bone_list.add_child(cb)
 		bone_checkboxes[name] = cb
@@ -87,7 +86,6 @@ func _build_dialog(skeleton: Skeleton3D) -> AcceptDialog:
 	vb.add_child(label)
 
 	vb.add_child(scroll)
-	# ---------------- CONFIRM ----------------
 	dialog.confirmed.connect(func():
 		bone_radius_multiplier = radius_spin.value
 		blend_falloff_power = falloff_spin.value
@@ -175,8 +173,6 @@ func _restore_skin(mesh_instance: MeshInstance3D) -> void:
 
 
 func _process_mesh_weighting(mesh_instance: MeshInstance3D, skeleton: Skeleton3D) -> void:
-	# You plug your heavy apply_bone_weights logic here.
-	# Keep it separated into another method for clarity.
 	apply_bone_weights(mesh_instance, skeleton)
 
 
@@ -224,7 +220,6 @@ func apply_bone_weights(mesh_instance: MeshInstance3D, skeleton: Skeleton3D) -> 
 			weld_map[key] = []
 		weld_map[key].append(i)
 
-	# ---------------- BONES ----------------
 	var bone_segments := []
 	var bone_count := sk.get_bone_count()
 
@@ -259,7 +254,6 @@ func apply_bone_weights(mesh_instance: MeshInstance3D, skeleton: Skeleton3D) -> 
 			"b": rest_b
 		})
 
-	# ---------------- WEIGHTS ----------------
 	var temp_weights := []
 	temp_weights.resize(vertex_count)
 
@@ -315,7 +309,6 @@ func apply_bone_weights(mesh_instance: MeshInstance3D, skeleton: Skeleton3D) -> 
 			"weights": current_weights
 		}
 
-	# ---------------- WELD BLENDING ----------------
 	for group in weld_map.values():
 
 		var combined := {}
@@ -421,18 +414,15 @@ func _merge_surfaces(mesh: ArrayMesh) -> Dictionary:
 
 		var indices = arrays[Mesh.ARRAY_INDEX]
 
-		# Ensure indices exist
 		if indices == null or indices.is_empty():
 			indices = PackedInt32Array()
 			indices.resize(verts.size())
 			for i in range(verts.size()):
 				indices[i] = i
 
-		# Append vertices
 		for v in verts:
 			merged_vertices.append(v)
 
-		# Append indices with offset
 		for idx in indices:
 			merged_indices.append(idx + vertex_offset)
 
@@ -443,7 +433,6 @@ func _merge_surfaces(mesh: ArrayMesh) -> Dictionary:
 
 		vertex_offset += verts.size()
 
-	# -------- FAILSAFE --------
 	if merged_vertices.is_empty():
 		push_error("Merge surfaces failed: no vertices found")
 		return {

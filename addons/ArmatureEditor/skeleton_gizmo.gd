@@ -4,8 +4,7 @@ signal recorded_bones_changed
 
 var _unit_sphere : ArrayMesh
 var _hover_id := -1
-var mode: int = 0 # 1 = Edit (rest), 0 = Pose
-
+var mode: int = 0
 var _undo_redo: EditorUndoRedoManager
 var _drag_start_pose_origin := []
 var _drag_start_rest_origin := []
@@ -15,6 +14,7 @@ var _drag_active := false
 var last_transform = Transform3D.IDENTITY
 var snap_enabled = true
 var snap_amount = .1
+
 func _is_node_selected(node: Node) -> bool:
 	var selection := EditorInterface.get_selection()
 	return node in selection.get_selected_nodes()
@@ -648,9 +648,6 @@ func _pick_subgizmo_id_perspective(
 		if children.is_empty():
 			continue
 
-		# ------------------------------
-		# Joints: unchanged (per child)
-		# ------------------------------
 		for child_bone in children:
 			var child_world := _get_bone_world_transform(skeleton, child_bone)
 			var joint_center := child_world.origin
@@ -666,9 +663,6 @@ func _pick_subgizmo_id_perspective(
 				best_joint_id = (child_bone * 2) + 1
 				best_joint_radius = joint_radius
 
-		# ------------------------------------------
-		# Body: pick against the closest child limb
-		# ------------------------------------------
 		var best_parent_body_t := INF
 		var best_parent_body_radius := 0.0
 
@@ -803,18 +797,12 @@ func _subgizmos_intersect_frustum(
 
 	for bone in range(skeleton.get_bone_count()):
 
-		# ----------------------------------
-		# Test bone body (head position)
-		# ----------------------------------
 		var world := _get_bone_world_transform(skeleton, bone)
 		var head := world.origin
 
 		if _point_in_frustum(head, frustum):
-			result.append(bone * 2)  # body id
+			result.append(bone * 2)
 
-		# ----------------------------------
-		# Test joint (tail position)
-		# ----------------------------------
 		var children := skeleton.get_bone_children(bone)
 		if children.is_empty():
 			continue

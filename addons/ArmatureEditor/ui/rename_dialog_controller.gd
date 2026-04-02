@@ -1,6 +1,3 @@
-# rename_dialog_controller.gd
-# Handles the "Rename Bone" dialog and validation.
-
 @tool
 extends Node
 class_name RenameDialogController
@@ -8,18 +5,16 @@ class_name RenameDialogController
 signal confirmed(bone_index: int, new_name: String)
 signal canceled(bone_index: int)
 
-# =========================================================
-# Exports
-# =========================================================
 @export_category("Dialog")
 @export var dialog_title := "Rename Bone"
 @export var default_placeholder := "New bone name"
 
-# =========================================================
-# Public
-# =========================================================
 var context: ArmatureSkeletonContext = null
-
+var _editor_interface: EditorInterface = null
+var _dialog: AcceptDialog = null
+var _edit: LineEdit = null
+var _old_label: Label = null
+var _target_bone := -1
 
 ## Sets the context used by this controller.
 func set_context(p_context: ArmatureSkeletonContext) -> void:
@@ -70,15 +65,6 @@ func dispose() -> void:
 	_target_bone = -1
 
 
-# =========================================================
-# Private
-# =========================================================
-
-var _editor_interface: EditorInterface = null
-var _dialog: AcceptDialog = null
-var _edit: LineEdit = null
-var _old_label: Label = null
-var _target_bone := -1
 
 
 func _create_dialog_if_needed() -> void:

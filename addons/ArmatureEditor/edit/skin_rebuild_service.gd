@@ -2,14 +2,11 @@
 extends RefCounted
 class_name ArmatureSkinService
 
-
 var context: ArmatureSkeletonContext = null
-
 
 ## Sets the context used by this service.
 func set_context(p_context: ArmatureSkeletonContext) -> void:
 	context = p_context
-
 
 ## Rebuilds Skin binds for all MeshInstance3D nodes using the active skeleton.
 ## Preserves the original function name.

@@ -2,7 +2,6 @@
 extends RefCounted
 class_name ArmatureInputRouter
 
-
 var context: ArmatureSkeletonContext = null
 var selection_service: ArmatureSelectionService = null
 var extrude_service: ArmatureExtrudeService = null
@@ -14,8 +13,6 @@ var copy_paste_service: ArmatureCopyPasteService = null
 var context_menu_controller: Object = null 
 var extrude_name_controller: Object = null 
 var toaster: EditorToaster = null
-
-
 ## Sets dependencies used by this router.
 func set_dependencies(
 	p_context: ArmatureSkeletonContext,
